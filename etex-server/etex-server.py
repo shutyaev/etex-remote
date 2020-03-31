@@ -1,3 +1,4 @@
+import argparse
 import http.server
 import io
 import os
@@ -46,5 +47,8 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(outgoing_bytes.getvalue())
 
-httpd = http.server.HTTPServer(("localhost", 8000), HTTPRequestHandler)
+ap = argparse.ArgumentParser()
+ap.add_argument("-port", default="8000", help="port to listen on")
+args = vars(ap.parse_args())
+httpd = http.server.HTTPServer(("", int(args["port"])), HTTPRequestHandler)
 httpd.serve_forever()

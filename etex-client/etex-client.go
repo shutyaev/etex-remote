@@ -3,6 +3,7 @@ package main
 import (
 	"archive/zip"
 	"bytes"
+	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -113,13 +114,16 @@ func unzip(data []byte, dest string) {
 }
 
 func main() {
-	makefilePath := os.Args[1]
+	hostname := flag.String("host", "localhost", "host of the etex-server")
+	port := flag.Int("port", 8000, "port of the etex-server")
+	flag.Parse()
+	makefilePath := flag.Args()[0]
 	data, err := ioutil.ReadFile(makefilePath)
 	check(err)
 	makefile := Makefile{}
 	yaml.Unmarshal(data, &makefile)
 	zipData := createZip(makefilePath, makefile)
-	body := callEtexServer("localhost", 8000, filepath.Base(makefilePath), makefile.OutputPath, zipData)
+	body := callEtexServer(*hostname, *port, filepath.Base(makefilePath), makefile.OutputPath, zipData)
 	outputPath := filepath.Join(filepath.Dir(makefilePath), makefile.OutputPath)
 	unzip(body, outputPath)
 }

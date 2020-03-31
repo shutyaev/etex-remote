@@ -46,5 +46,5 @@ class HTTPRequestHandler(http.server.BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(outgoing_bytes.getvalue())
 
-httpd = http.server.HTTPServer(('localhost', 8000), HTTPRequestHandler)
+httpd = http.server.HTTPServer(("localhost", 8000), HTTPRequestHandler)
 httpd.serve_forever()

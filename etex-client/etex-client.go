@@ -59,25 +59,19 @@ func createZip(makefilePath string, makefile Makefile) bytes.Buffer {
 	zipWriter := zip.NewWriter(zipBuffer)
 	makefileDir := filepath.Dir(makefilePath)
 	for _, file := range getFilesToZip(makefilePath, makefile) {
-		// get zip path
 		zipPath, err := filepath.Rel(makefileDir, file)
 		check(err)
-		// open file to zip
 		fileToZip, err := os.Open(file)
 		check(err)
 		defer fileToZip.Close()
-		// get file information
 		info, err := fileToZip.Stat()
 		check(err)
-		// create header
 		header, err := zip.FileInfoHeader(info)
 		check(err)
 		header.Name = zipPath
 		header.Method = zip.Deflate
-		// create item writer
 		zipItemWriter, err := zipWriter.CreateHeader(header)
 		check(err)
-		// copy contents
 		_, err = io.Copy(zipItemWriter, fileToZip)
 		check(err)
 	}
@@ -86,26 +80,21 @@ func createZip(makefilePath string, makefile Makefile) bytes.Buffer {
 	return *zipBuffer
 }
 
-func main() {
-	makefilePath := os.Args[1]
-	// read yaml
-	data, err := ioutil.ReadFile(makefilePath)
-	check(err)
-	// parse yaml
-	makefile := Makefile{}
-	yaml.Unmarshal(data, &makefile)
-	zipData := createZip(makefilePath, makefile)
-	url := fmt.Sprintf("http://localhost:8000/?makefile_name=%v&output_path=%v", filepath.Base(makefilePath), makefile.OutputPath)
-	resp, err := http.Post(url, "application/zip", &zipData)
+func callEtexServer(host string, port int, makefileName string, outputPath string, data bytes.Buffer) []byte {
+	url := fmt.Sprintf("http://%v:%v/?makefile_name=%v&output_path=%v", host, port, makefileName, outputPath)
+	resp, err := http.Post(url, "application/zip", &data)
 	check(err)
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	check(err)
-	zipReader, err := zip.NewReader(bytes.NewReader(body), int64(len(body)))
+	return body
+}
+
+func unzip(data []byte, dest string) {
+	zipReader, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
 	check(err)
-	outputPath := filepath.Join(filepath.Dir(makefilePath), makefile.OutputPath)
 	for _, f := range zipReader.File {
-		fpath := filepath.Join(outputPath, f.Name)
+		fpath := filepath.Join(dest, f.Name)
 		if f.FileInfo().IsDir() {
 			os.MkdirAll(fpath, os.ModePerm)
 			continue
@@ -121,4 +110,16 @@ func main() {
 		rc.Close()
 		check(err)
 	}
+}
+
+func main() {
+	makefilePath := os.Args[1]
+	data, err := ioutil.ReadFile(makefilePath)
+	check(err)
+	makefile := Makefile{}
+	yaml.Unmarshal(data, &makefile)
+	zipData := createZip(makefilePath, makefile)
+	body := callEtexServer("localhost", 8000, filepath.Base(makefilePath), makefile.OutputPath, zipData)
+	outputPath := filepath.Join(filepath.Dir(makefilePath), makefile.OutputPath)
+	unzip(body, outputPath)
 }

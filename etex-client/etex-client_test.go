@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
@@ -11,7 +12,6 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// TestMakefileStruct - tests Makefile parsing
 func TestMakefileStruct(t *testing.T) {
 	data, err := ioutil.ReadFile(filepath.Join("testdata", "sample.yaml"))
 	check(err)
@@ -19,9 +19,9 @@ func TestMakefileStruct(t *testing.T) {
 	yaml.Unmarshal(data, &makefile)
 	errorMessage := "Found differences at %v"
 	assertEquals("md_sources", makefile.FilesPath, fmt.Sprintf(errorMessage, "FilesPath"), t)
-	assertEquals("/images", makefile.FiguresPath, fmt.Sprintf(errorMessage, "FiguresPath"), t)
-	assertEquals("/styles", makefile.StylesPath, fmt.Sprintf(errorMessage, "StylesPath"), t)
-	assertEquals("/text", makefile.OutputPath, fmt.Sprintf(errorMessage, "OutputPath"), t)
+	assertEquals("images", makefile.FiguresPath, fmt.Sprintf(errorMessage, "FiguresPath"), t)
+	assertEquals("styles", makefile.StylesPath, fmt.Sprintf(errorMessage, "StylesPath"), t)
+	assertEquals("text", makefile.OutputPath, fmt.Sprintf(errorMessage, "OutputPath"), t)
 }
 
 func TestGetFilesToZip(t *testing.T) {
@@ -52,6 +52,21 @@ func TestCreateZip(t *testing.T) {
 	if bytes.Compare(expected, actual.Bytes()) != 0 {
 		t.Errorf("The actual created zip doesn't match the expected one")
 	}
+}
+
+func TestUnzip(t *testing.T) {
+	data, err := ioutil.ReadFile(filepath.Join("testdata", "testUnzip.zip"))
+	check(err)
+	dir, err := ioutil.TempDir("", "example")
+	check(err)
+	defer os.RemoveAll(dir)
+	unzip(data, dir)
+	actual, err := ioutil.ReadFile(filepath.Join(dir, "foo.txt"))
+	check(err)
+	assertEquals("Hello, world!", string(actual), "foo.txt comparison failed", t)
+	actual, err = ioutil.ReadFile(filepath.Join(dir, "bar", "baz.txt"))
+	check(err)
+	assertEquals("Goodbye, world!", string(actual), "bar/baz.txt comparison failed", t)
 }
 
 func sampleMakefile() Makefile {

@@ -1,0 +1,20 @@
+files_path: 'md_sources'
+title: 0_front_page.md
+files:
+- 1_text.md
+- 3_colophon.md
+ 
+figures_path: 'images'
+
+footnotes:
+- file: '2_footnotes.md'
+- using_counter
+
+styles_path: 'styles'
+include_css:
+- common.css
+- front_page.css: [0_front_page.md]
+- colophon.css:   [3_colophon.md]
+- footnotes.css:  [2_footnotes.md]
+
+output_path: 'text'
